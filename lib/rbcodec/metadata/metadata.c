@@ -241,6 +241,9 @@ const struct afmt_entry audio_formats[AFMT_NUM_CODECS] =
         AFMT_ENTRY("AAC", "aac_bsf", "N/A", get_aac_metadata,   "aac\0"),
     [AFMT_DSD] =
         AFMT_ENTRY("DSD", "dsd", "N/A", get_dsd_metadata, "dsf\0dff\0iso\0"),
+    /* Videoton TV Computer emulator CAS file */
+    [AFMT_TVC] =
+        AFMT_ENTRY("TVCCAS", "tvc", "N/A", get_tvc_metadata, "cas\0"),
 };
 
 #if defined (HAVE_RECORDING)

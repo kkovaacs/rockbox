@@ -68,3 +68,4 @@ metadata/wave.c
 metadata/wavpack.c
 metadata/aac.c
 metadata/dsd.c
+metadata/tvc.c

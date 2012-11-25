@@ -96,6 +96,7 @@ enum
     AFMT_OPUS,         /* Opus (see http://www.opus-codec.org ) */
     AFMT_AAC_BSF,
     AFMT_DSD,
+    AFMT_TVC,          /* Videoton TV Computer emulator CAS file */
 
     /* add new formats at any index above this line to have a sensible order -
        specified array index inits are used */
