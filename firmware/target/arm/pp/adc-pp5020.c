@@ -150,11 +150,13 @@ void adc_init(void)
 
 #if defined (IRIVER_H10) || defined(IRIVER_H10_5GB) || \
     defined(MROBE_100)
+#if 0
     /* Enable channel 2 (H10:remote) */
     DEV_INIT1  &=~0x300;
     DEV_INIT1  |= 0x100;
     ADC_ADDR   |= 0x4000000;
     ADC_STATUS |= 0x200000;
+#endif
 
     /* Enable channel 3 (H10:scroll pad) */
     DEV_INIT1  &=~0x3000;
@@ -172,7 +174,7 @@ void adc_init(void)
     /* Force a scan of all channels to get initial values */
     adc_scan(0);
     adc_scan(1);
-    adc_scan(2);
+    //adc_scan(2);
     adc_scan(3);
 
     tick_add_task(adc_tick);

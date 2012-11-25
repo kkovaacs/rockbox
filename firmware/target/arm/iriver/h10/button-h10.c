@@ -53,7 +53,9 @@ bool button_hold(void)
 
 bool remote_button_hold(void)
 {
+#if 0
     return adc_scan(ADC_REMOTE) < 0x2B;
+#endif
 }
 
 /*
@@ -65,9 +67,9 @@ int button_read_device(void)
     int data;
     unsigned char state;
     static bool hold_button = false;
-    static bool remote_hold_button = false;
+    // static bool remote_hold_button = false;
     bool hold_button_old;
-    bool remote_hold_button_old;
+    // bool remote_hold_button_old;
 
     /* Hold */
     hold_button_old = hold_button;
@@ -113,6 +115,7 @@ int button_read_device(void)
     }
     
     /* remote buttons */
+#if 0
     remote_hold_button_old = remote_hold_button;
 
     data = adc_scan(ADC_REMOTE);
@@ -143,6 +146,7 @@ int button_read_device(void)
     /* remote play button should be dead if hold */
     if (!remote_hold_button && !(GPIOA_INPUT_VAL & 0x1))
         btn |= BUTTON_RC_PLAY;
+#endif
     
     return btn;
 }
