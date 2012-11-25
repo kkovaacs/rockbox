@@ -236,6 +236,9 @@ const struct afmt_entry audio_formats[AFMT_NUM_CODECS] =
     /* Opus */
     [AFMT_OPUS] =
         AFMT_ENTRY("Opus", "opus", NULL, get_ogg_metadata,   "opus\0"),
+    /* Videoton TV Computer emulator CAS file */
+    [AFMT_TVC] =
+        AFMT_ENTRY("TVCCAS", "tvc", NULL, get_tvc_metadata, "cas\0"),
 #endif
 };
 
