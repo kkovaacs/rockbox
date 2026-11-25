@@ -66,6 +66,14 @@ static int16_t samples[CHUNK_SIZE] IBSS_ATTR;
 static unsigned int samples_written;
 static uint16_t current_crc;
 
+/* playback position, in samples generated since the start of the tape */
+static unsigned long position;
+/* samples before this position are generated but not played (seeking) */
+static unsigned long skip_until;
+/* stop generating: playback halted, or restarting for a backward seek */
+static bool stop;
+static bool restart;
+
 static uint16_t crc(unsigned char bit, uint16_t crc)
 {
     unsigned char a, carry;
@@ -82,11 +90,60 @@ static uint16_t crc(unsigned char bit, uint16_t crc)
     return crc;
 }
 
+static unsigned long ms_to_samples(unsigned long ms)
+{
+    return (uint64_t)ms * SAMPLE_RATE / 1000;
+}
+
+static void handle_command(void)
+{
+    intptr_t param;
+    enum codec_command_action action = ci->get_command(&param);
+
+    if (action == CODEC_ACTION_HALT) {
+        stop = true;
+    } else if (action == CODEC_ACTION_SEEK_TIME) {
+        /* the tape is generated sequentially: skip forward to the target,
+           or start over and skip to it when seeking backwards */
+        skip_until = ms_to_samples(param);
+        if (skip_until < position) {
+            restart = true;
+            stop = true;
+        }
+        ci->set_elapsed(param);
+        ci->seek_complete();
+    }
+}
+
+/* send generated samples to the PCM buffer, unless they are being skipped */
+static void insert(int16_t const *buf, unsigned int num)
+{
+    if (stop)
+        return;
+
+    if (position + num <= skip_until) {
+        position += num;
+    } else {
+        if (position < skip_until) {
+            unsigned int skip = skip_until - position;
+            buf += skip;
+            num -= skip;
+            position += skip;
+        }
+
+        ci->pcmbuf_insert(buf, NULL, num);
+        position += num;
+        ci->set_elapsed((uint64_t)position * 1000 / SAMPLE_RATE);
+    }
+
+    handle_command();
+}
+
 /* send the samples collected by output() to the PCM buffer */
 static void flush(void)
 {
     if (samples_written > 0) {
-        ci->pcmbuf_insert(samples, NULL, samples_written);
+        insert(samples, samples_written);
         samples_written = 0;
     }
 }
@@ -109,7 +166,7 @@ static void out_silence_1s(void)
 
     while (i > 0) {
         unsigned int len = MIN(i, DIM(samples));
-        ci->pcmbuf_insert(samples, NULL, len);
+        insert(samples, len);
         i -= len;
     }
 }
@@ -144,7 +201,7 @@ static void out_pre(unsigned int num)
 
     while (num > 0) {
         unsigned int i = MIN(num, num_in_buffer);
-        ci->pcmbuf_insert(samples, NULL, i * DIM(pre));
+        insert(samples, i * DIM(pre));
         num -= i;
     }
 }
@@ -297,12 +354,7 @@ enum codec_status codec_run(void)
 {
     size_t filesize, wanted;
     unsigned char *casfile = NULL;
-    intptr_t param;
     size_t program_length;
-
-    /* the codec stays loaded across tracks of the same type */
-    samples_written = 0;
-    current_crc = 0;
 
     if (codec_init()) {
         return CODEC_ERROR;
@@ -347,22 +399,22 @@ enum codec_status codec_run(void)
            casfile[0x81], (unsigned int)program_length,
            casfile[0x84], casfile[0x8f]);
 
+    /* resume where playback was left off */
+    skip_until = ms_to_samples(ci->id3->elapsed);
+
     do {
-        enum codec_command_action action = ci->get_command(&param);
-
-        if (action == CODEC_ACTION_HALT)
-            break;
-
-        if (action == CODEC_ACTION_SEEK_TIME) {
-            /* TODO: implement seeking */
-            ci->set_elapsed(0);
-            ci->seek_complete();
-        }
+        /* the codec stays loaded across tracks of the same type, and a
+           backward seek starts the tape over */
+        samples_written = 0;
+        current_crc = 0;
+        position = 0;
+        stop = false;
+        restart = false;
 
         out_headblock(casfile);
         out_data(casfile, program_length);
         flush();
-    } while (0);
+    } while (restart);
 
     return CODEC_OK;
 }
