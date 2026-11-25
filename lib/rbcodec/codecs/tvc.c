@@ -239,11 +239,10 @@ static void out_bit(unsigned char bit)
         output(zero_bit, DIM(zero_bit));
     else
         output(one_bit, DIM(one_bit));
-
-    current_crc = crc_update(current_crc, bit);
 }
 
-static void out_byte(unsigned char data)
+/* send a byte, least significant bit first, without touching the CRC */
+static void out_raw_byte(unsigned char data)
 {
     unsigned int i;
 
@@ -253,10 +252,24 @@ static void out_byte(unsigned char data)
     }
 }
 
-static void out_word(uint16_t data)
+/* send a byte that is covered by the sector CRC */
+static void out_byte(unsigned char data)
 {
-    out_byte(data & 0xff);
-    out_byte(data >> 8);
+    unsigned int i;
+
+    for (i = 0; i < 8; i++)
+        current_crc = crc_update(current_crc, (data >> i) & 1);
+
+    out_raw_byte(data);
+}
+
+/* send the sector CRC, low byte first */
+static void out_crc(void)
+{
+    uint16_t crc = current_crc;
+
+    out_raw_byte(crc & 0xff);
+    out_raw_byte(crc >> 8);
 }
 
 /* name in the tape header; the TVC allows at most 10 characters */
@@ -302,7 +315,7 @@ static void out_headblock(unsigned char *casfile)
         out_byte(casfile[i]);
 
     out_byte(0x00); // file end mark
-    out_word(current_crc);
+    out_crc();
     out_pre(5);
 }
 
@@ -336,7 +349,7 @@ static void out_datablock(unsigned char *data, size_t len, unsigned int sector,
         out_byte(*data);
 
     out_byte(last ? 0xff : 0x00); // file end mark, included in the CRC
-    out_word(current_crc);
+    out_crc();
 }
 
 static void out_data(unsigned char *casfile, size_t data_length)
