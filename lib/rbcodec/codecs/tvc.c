@@ -2,7 +2,6 @@
 #include "codeclib.h"
 #include <inttypes.h>
 
-#define LOGF_ENABLE
 #include "logf.h"
 
 CODEC_HEADER

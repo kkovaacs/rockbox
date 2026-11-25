@@ -10,7 +10,6 @@
 #include "metadata_parsers.h"
 #include "rbunicode.h"
 
-#define LOGF_ENABLE
 #include "logf.h"
 
 /*
