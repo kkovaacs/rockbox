@@ -14,12 +14,11 @@
 #include "logf.h"
 
 /*
- TVC "0" bit, 552 usec: 11 high 11 low
- TVC "1" bit, 388 usec: 8 high 8 low
+ TVC "0" bit, 552 usec: 12 high 12 low samples at 44.1 kHz
+ TVC "1" bit, 388 usec: 9 high 8 low
 
- TVC pre sound, 470 usec, 9 high 9 low
- TVC syncrone, 736 usec, 14 hig 14 low
- -this was change to longer (16-16) to be comaptible with wav2cas
+ TVC pre sound, 470 usec, 10 high 11 low
+ TVC syncrone, 736 usec, 16 high 16 low
 
  TVC Headblock
  0) 2 sec silence

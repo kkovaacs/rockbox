@@ -17,6 +17,9 @@ CODEC_HEADER
 #define POS_PEAK 0x7d00
 #define NEG_PEAK -0x7d00
 
+/* Periods per the TVC tape format, rounded to whole samples at 44.1 kHz */
+
+/* "0" bit: 552 us, 1812 Hz -> 24.3 samples */
 const int16_t zero_bit[24] ICONST_ATTR = {
     POS_PEAK, POS_PEAK, POS_PEAK, POS_PEAK,
     POS_PEAK, POS_PEAK, POS_PEAK, POS_PEAK,
@@ -26,33 +29,35 @@ const int16_t zero_bit[24] ICONST_ATTR = {
     NEG_PEAK, NEG_PEAK, NEG_PEAK, NEG_PEAK,
 };
 
-const int16_t one_bit[16] ICONST_ATTR = {
-    POS_PEAK, POS_PEAK, POS_PEAK, POS_PEAK,
-    POS_PEAK, POS_PEAK, POS_PEAK, POS_PEAK,
-    NEG_PEAK, NEG_PEAK, NEG_PEAK, NEG_PEAK,
-    NEG_PEAK, NEG_PEAK, NEG_PEAK, NEG_PEAK,
-};
-
-const int16_t pre[18] ICONST_ATTR = {
+/* "1" bit: 388 us, 2577 Hz -> 17.1 samples */
+const int16_t one_bit[17] ICONST_ATTR = {
     POS_PEAK, POS_PEAK, POS_PEAK, POS_PEAK,
     POS_PEAK, POS_PEAK, POS_PEAK, POS_PEAK,
     POS_PEAK,
     NEG_PEAK, NEG_PEAK, NEG_PEAK, NEG_PEAK,
     NEG_PEAK, NEG_PEAK, NEG_PEAK, NEG_PEAK,
-    NEG_PEAK,
 };
 
-static const int16_t sync_samples[34] ICONST_ATTR = {
+/* leader tone: 470 us, 2128 Hz -> 20.7 samples */
+const int16_t pre[21] ICONST_ATTR = {
+    POS_PEAK, POS_PEAK, POS_PEAK, POS_PEAK,
+    POS_PEAK, POS_PEAK, POS_PEAK, POS_PEAK,
+    POS_PEAK, POS_PEAK,
+    NEG_PEAK, NEG_PEAK, NEG_PEAK, NEG_PEAK,
+    NEG_PEAK, NEG_PEAK, NEG_PEAK, NEG_PEAK,
+    NEG_PEAK, NEG_PEAK, NEG_PEAK,
+};
+
+/* sync: 736 us, 1359 Hz -> 32.5 samples */
+static const int16_t sync_samples[32] ICONST_ATTR = {
     POS_PEAK, POS_PEAK, POS_PEAK, POS_PEAK,
     POS_PEAK, POS_PEAK, POS_PEAK, POS_PEAK,
     POS_PEAK, POS_PEAK, POS_PEAK, POS_PEAK,
     POS_PEAK, POS_PEAK, POS_PEAK, POS_PEAK,
-    POS_PEAK,
     NEG_PEAK, NEG_PEAK, NEG_PEAK, NEG_PEAK,
     NEG_PEAK, NEG_PEAK, NEG_PEAK, NEG_PEAK,
     NEG_PEAK, NEG_PEAK, NEG_PEAK, NEG_PEAK,
     NEG_PEAK, NEG_PEAK, NEG_PEAK, NEG_PEAK,
-    NEG_PEAK,
 };
 
 #define DIM(array) (sizeof(array) / sizeof(array[0]))
