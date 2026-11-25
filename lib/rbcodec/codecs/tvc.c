@@ -237,15 +237,14 @@ static void out_word(uint16_t data)
     out_byte(data >> 8);
 }
 
-static void out_string(unsigned char *str)
+/* name in the tape header; the TVC allows at most 10 characters */
+#define TAPE_NAME "TEST"
+#define TAPE_NAME_LEN (sizeof(TAPE_NAME) - 1)
+typedef char tape_name_fits[TAPE_NAME_LEN <= 10 ? 1 : -1];
+
+static void out_string(const char *str, size_t len)
 {
     unsigned int i;
-    size_t len = strlen(str);
-
-    if (len > 10) {
-        DEBUGF("CODEC_ERROR: file name '%s' too long\n", str);
-        return;
-    }
 
     out_byte(len);
     for (i = 0; i < len; i++)
@@ -271,9 +270,10 @@ static void out_headblock(unsigned char *casfile)
     out_byte(0);    // not write-protected
     out_byte(1);    // only one sector in the head block
     out_byte(0);    // sector number, always zero for head block
-    out_byte(1 + strlen("TEST") + 16); // bytes in sector: file name and non-buffered block header
+    // bytes in sector: file name and non-buffered block header
+    out_byte(1 + TAPE_NAME_LEN + 16);
 
-    out_string("TEST"); // file name
+    out_string(TAPE_NAME, TAPE_NAME_LEN); // file name
 
     // CAS block header
     for (i = 0x80; i < 0x90; i++)
