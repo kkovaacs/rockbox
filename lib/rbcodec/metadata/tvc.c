@@ -42,6 +42,7 @@ bool get_tvc_metadata(int fd, struct mp3entry *id3)
 {
     unsigned char header[CAS_DATA_OFFSET];
     unsigned long program_length;
+    unsigned long samples;
 
     logf("Getting TVC metadata");
 
@@ -62,14 +63,28 @@ bool get_tvc_metadata(int fd, struct mp3entry *id3)
         return false;
 
     id3->frequency = 44100;
-    id3->bitrate = id3->frequency / 10;
+    id3->bitrate = 706; /* 16-bit mono PCM at 44.1 kHz */
     id3->vbr = false;
 
-    /* Rough estimate of the length:
-     * header: 128 + 16 bytes in file, about 5s + 2s silence on tape
-     * data: average 470 usec per bit on tape
+    /* Length of the tape the codec generates, in samples at 44.1 kHz.
+     * Only the bit periods depend on the data, so count each bit as the
+     * average of a "0" (24 samples) and a "1" (17 samples).
      */
-    id3->length = 7000 + ((id3->filesize - 144) * 8 * 470LL) / 1000;
+    samples = 2 * 44100                 /* silence */
+            + 10240 * 21 + 32           /* leader, sync */
+            + 32 * 41 * 8 / 2           /* head block bytes */
+            + 5 * 21;                   /* trailer */
+    if (program_length > 0) {
+        unsigned long sectors = (program_length + 255) / 256;
+        samples += 44100                /* silence */
+                 + 5120 * 21 + 32       /* leader, sync */
+                 /* block header, sector headers and CRCs, data */
+                 + (6 + 5 * sectors + program_length) * 41 * 8 / 2
+                 + 5 * 21;              /* trailer */
+    }
+    samples += 2 * 44100;               /* silence */
+
+    id3->length = samples * 1000 / 44100;
 
     return true;
 }
