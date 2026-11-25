@@ -70,7 +70,7 @@ static uint16_t crc(unsigned char bit, uint16_t crc)
     carry = a & 0x80;
     if (carry)
         crc ^= 0x0810;
-    crc <<= 2;
+    crc <<= 1;
     if (carry)
         crc++;
 
