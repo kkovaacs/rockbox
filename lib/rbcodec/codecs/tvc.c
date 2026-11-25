@@ -11,7 +11,6 @@ CODEC_HEADER
 #define CAS_MAX_FILESIZE 65536
 #define SAMPLE_RATE 44100
 
-#define CAS_BLOCKSIZE 0x80
 #define CAS_DATA_OFFSET 0x90 /* UPM header + program header */
 
 #define SILENCE 0x0000
@@ -244,11 +243,10 @@ static void out_datablock(unsigned char *data, size_t len, unsigned int sector,
     out_word(current_crc);
 }
 
-static void out_data(unsigned char *casfile, size_t file_length)
+static void out_data(unsigned char *casfile, size_t data_length)
 {
     unsigned int i;
     size_t offset;
-    size_t data_length = file_length - CAS_DATA_OFFSET;
 
     out_datahead(data_length);
 
@@ -279,9 +277,7 @@ enum codec_status codec_run(void)
     size_t filesize;
     unsigned char *casfile = NULL;
     intptr_t param;
-    uint16_t blocknumber;
-    uint8_t lastblockbytes;
-    size_t filesize_in_header;
+    size_t program_length;
 
     if (codec_init()) {
         return CODEC_ERROR;
@@ -302,13 +298,11 @@ enum codec_status codec_run(void)
         return CODEC_ERROR;
     }
 
-    blocknumber = (casfile[3] << 8) + casfile[2];
-    lastblockbytes = casfile[4];
-    filesize_in_header = blocknumber * CAS_BLOCKSIZE + lastblockbytes;
+    /* program length from the non-buffered file header */
+    program_length = (casfile[0x83] << 8) + casfile[0x82];
 
-    DEBUGF("File size in header: %zu\n", filesize_in_header);
     DEBUGF("CAS type %u, program size %u, autorun %u, version %u\n",
-           casfile[0x81], (casfile[0x83] << 8) + casfile[0x82],
+           casfile[0x81], (unsigned int)program_length,
            casfile[0x84], casfile[0x8f]);
 
     do {
@@ -324,7 +318,7 @@ enum codec_status codec_run(void)
         }
 
         out_headblock(casfile);
-        out_data(casfile, filesize_in_header);
+        out_data(casfile, program_length);
     } while (0);
 
     return CODEC_OK;
