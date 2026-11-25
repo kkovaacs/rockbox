@@ -95,7 +95,8 @@ static unsigned long skip_until;
 static bool stop;
 static bool restart;
 
-static uint16_t crc(unsigned char bit, uint16_t crc)
+/* feed one bit into the checksum, as the TVC ROM routine does */
+static uint16_t crc_update(uint16_t crc, unsigned char bit)
 {
     unsigned char a, carry;
 
@@ -239,7 +240,7 @@ static void out_bit(unsigned char bit)
     else
         output(one_bit, DIM(one_bit));
 
-    current_crc = crc(bit, current_crc);
+    current_crc = crc_update(current_crc, bit);
 }
 
 static void out_byte(unsigned char data)
