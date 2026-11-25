@@ -343,7 +343,7 @@ static void out_datablock(unsigned char *data, size_t len, unsigned int sector,
         current_crc = 0;
 
     out_byte(sector);
-    out_byte(len & 0xffLL);
+    out_byte(len & 0xff); // bytes in sector, 0 means 256
 
     for (; len > 0; len--, data++)
         out_byte(*data);
