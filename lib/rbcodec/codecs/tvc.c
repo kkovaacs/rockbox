@@ -224,7 +224,7 @@ static void out_datahead(size_t len)
     out_byte(0x00); // data block
     out_byte(0x11); // non-buffered
     out_byte(0);    // not write-protected
-    out_byte(len / 256 + 1); // sectors in this block
+    out_byte((len + 255) / 256); // sectors in this block, 0 means 256
 }
 
 static void out_datablock(unsigned char *data, size_t len, unsigned int sector,
@@ -248,15 +248,19 @@ static void out_data(unsigned char *casfile, size_t data_length)
     unsigned int i;
     size_t offset;
 
-    out_datahead(data_length);
+    /* a block can't have zero sectors: an empty program has no data block */
+    if (data_length > 0) {
+        out_datahead(data_length);
 
-    for (i = 0, offset = 0; offset < data_length; i++, offset += 256) {
-        size_t chunk_length = MIN(256, data_length - offset);
-        out_datablock(casfile + CAS_DATA_OFFSET + offset, chunk_length, i + 1,
-                      offset + chunk_length >= data_length);
+        for (i = 0, offset = 0; offset < data_length; i++, offset += 256) {
+            size_t chunk_length = MIN(256, data_length - offset);
+            out_datablock(casfile + CAS_DATA_OFFSET + offset, chunk_length,
+                          i + 1, offset + chunk_length >= data_length);
+        }
+
+        out_pre(5);
     }
 
-    out_pre(5);
     out_silence_1s();
     out_silence_1s();
 }
