@@ -82,12 +82,19 @@ static uint16_t crc(unsigned char bit, uint16_t crc)
     return crc;
 }
 
-static void output(int16_t const *sample, unsigned int num)
+/* send the samples collected by output() to the PCM buffer */
+static void flush(void)
 {
-    if (samples_written + num > CHUNK_SIZE) {
+    if (samples_written > 0) {
         ci->pcmbuf_insert(samples, NULL, samples_written);
         samples_written = 0;
     }
+}
+
+static void output(int16_t const *sample, unsigned int num)
+{
+    if (samples_written + num > CHUNK_SIZE)
+        flush();
 
     memcpy(samples + samples_written, sample, num * sizeof(int16_t));
     samples_written += num;
@@ -97,6 +104,7 @@ static void out_silence_1s(void)
 {
     unsigned int i = SAMPLE_RATE;
 
+    flush(); /* samples[] is reused below */
     memset(samples, 0, sizeof(samples));
 
     while (i > 0) {
@@ -127,8 +135,12 @@ static size_t fill_sample_buffer(int16_t const *sample, size_t len)
 
 static void out_pre(unsigned int num)
 {
-    size_t length = fill_sample_buffer(pre, sizeof(pre));
-    unsigned int num_in_buffer = length / sizeof(pre);
+    size_t length;
+    unsigned int num_in_buffer;
+
+    flush(); /* samples[] is reused below */
+    length = fill_sample_buffer(pre, sizeof(pre));
+    num_in_buffer = length / sizeof(pre);
 
     while (num > 0) {
         unsigned int i = MIN(num, num_in_buffer);
@@ -328,6 +340,7 @@ enum codec_status codec_run(void)
 
         out_headblock(casfile);
         out_data(casfile, program_length);
+        flush();
     } while (0);
 
     return CODEC_OK;
