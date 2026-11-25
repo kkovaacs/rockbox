@@ -228,7 +228,8 @@ static void out_datahead(size_t len)
     out_byte(len / 256 + 1); // sectors in this block
 }
 
-static void out_datablock(unsigned char *data, size_t len, unsigned int sector)
+static void out_datablock(unsigned char *data, size_t len, unsigned int sector,
+                          bool last)
 {
     if (sector > 1)
         current_crc = 0;
@@ -239,6 +240,7 @@ static void out_datablock(unsigned char *data, size_t len, unsigned int sector)
     for (; len > 0; len--, data++)
         out_byte(*data);
 
+    out_byte(last ? 0xff : 0x00); // file end mark, included in the CRC
     out_word(current_crc);
 }
 
@@ -252,7 +254,8 @@ static void out_data(unsigned char *casfile, size_t file_length)
 
     for (i = 0, offset = 0; offset < data_length; i++, offset += 256) {
         size_t chunk_length = MIN(256, data_length - offset);
-        out_datablock(casfile + CAS_DATA_OFFSET + offset, chunk_length, i + 1);
+        out_datablock(casfile + CAS_DATA_OFFSET + offset, chunk_length, i + 1,
+                      offset + chunk_length >= data_length);
     }
 
     out_pre(5);
