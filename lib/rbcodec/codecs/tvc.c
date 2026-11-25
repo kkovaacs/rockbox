@@ -34,7 +34,6 @@ CODEC_HEADER
 #define CAS_MAX_FILESIZE (CAS_DATA_OFFSET + 0xffff)
 #define SAMPLE_RATE 44100
 
-#define SILENCE 0x0000
 #define POS_PEAK 0x7d00
 #define NEG_PEAK -0x7d00
 
@@ -68,6 +67,8 @@ static const int16_t pre[21] ICONST_ATTR = {
     NEG_PEAK, NEG_PEAK, NEG_PEAK, NEG_PEAK,
     NEG_PEAK, NEG_PEAK, NEG_PEAK,
 };
+
+static const int16_t silence[100] ICONST_ATTR = { 0 };
 
 /* sync: 736 us, 1359 Hz -> 32.5 samples */
 static const int16_t sync_samples[32] ICONST_ATTR = {
@@ -181,51 +182,16 @@ static void output(int16_t const *sample, unsigned int num)
 
 static void out_silence_1s(void)
 {
-    unsigned int i = SAMPLE_RATE;
-
-    flush(); /* samples[] is reused below */
-    memset(samples, 0, sizeof(samples));
-
-    while (i > 0) {
-        unsigned int len = MIN(i, DIM(samples));
-        insert(samples, len);
-        i -= len;
-    }
-}
-
-static void copy_sample_buffer(int16_t const *sample,
-                               size_t len,
-                               unsigned int num)
-{
     unsigned int i;
 
-    for (i = 0; i < num * len; i += len)
-        memcpy(((char *)samples) + i, sample, len);
-}
-
-static size_t fill_sample_buffer(int16_t const *sample, size_t len)
-{
-    size_t num_to_fill = sizeof(samples) / len;
-
-    copy_sample_buffer(sample, len, num_to_fill);
-
-    return num_to_fill * len;
+    for (i = 0; i < SAMPLE_RATE; i += DIM(silence))
+        output(silence, MIN(DIM(silence), SAMPLE_RATE - i));
 }
 
 static void out_pre(unsigned int num)
 {
-    size_t length;
-    unsigned int num_in_buffer;
-
-    flush(); /* samples[] is reused below */
-    length = fill_sample_buffer(pre, sizeof(pre));
-    num_in_buffer = length / sizeof(pre);
-
-    while (num > 0) {
-        unsigned int i = MIN(num, num_in_buffer);
-        insert(samples, i * DIM(pre));
-        num -= i;
-    }
+    while (num-- > 0)
+        output(pre, DIM(pre));
 }
 
 static void out_sync(void)
