@@ -12,6 +12,7 @@ CODEC_HEADER
 #define SAMPLE_RATE 44100
 
 #define CAS_BLOCKSIZE 0x80
+#define CAS_DATA_OFFSET 0x90 /* UPM header + program header */
 
 #define SILENCE 0x0000
 #define POS_PEAK 0x7d00
@@ -245,13 +246,13 @@ static void out_data(unsigned char *casfile, size_t file_length)
 {
     unsigned int i;
     size_t offset;
-    size_t data_length = file_length - 0x90;
+    size_t data_length = file_length - CAS_DATA_OFFSET;
 
     out_datahead(data_length);
 
     for (i = 0, offset = 0; offset < data_length; i++, offset += 256) {
         size_t chunk_length = MIN(256, data_length - offset);
-        out_datablock(casfile + offset, chunk_length, i + 1);
+        out_datablock(casfile + CAS_DATA_OFFSET + offset, chunk_length, i + 1);
     }
 
     out_pre(5);
