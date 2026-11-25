@@ -8,10 +8,10 @@
 CODEC_HEADER
 
 #define CHUNK_SIZE 1024
-#define CAS_MAX_FILESIZE 65536
-#define SAMPLE_RATE 44100
-
 #define CAS_DATA_OFFSET 0x90 /* UPM header + program header */
+/* headers plus the largest program the 16-bit length field can describe */
+#define CAS_MAX_FILESIZE (CAS_DATA_OFFSET + 0xffff)
+#define SAMPLE_RATE 44100
 
 #define SILENCE 0x0000
 #define POS_PEAK 0x7d00
@@ -295,7 +295,7 @@ enum codec_status codec_main(enum codec_entry_call_reason reason)
 
 enum codec_status codec_run(void)
 {
-    size_t filesize;
+    size_t filesize, wanted;
     unsigned char *casfile = NULL;
     intptr_t param;
     size_t program_length;
@@ -306,10 +306,20 @@ enum codec_status codec_run(void)
 
     codec_set_replaygain(ci->id3);
 
-    ci->seek_buffer(0);
-    casfile = ci->request_buffer(&filesize, CAS_MAX_FILESIZE);
+    /* the whole file (or as much as can hold a program) must be in one
+       contiguous buffer; request_buffer may return less than asked for */
+    wanted = MIN((size_t)ci->filesize, (size_t)CAS_MAX_FILESIZE);
 
-    if (filesize == 0) {
+    ci->seek_buffer(0);
+    casfile = ci->request_buffer(&filesize, wanted);
+
+    if (casfile == NULL || filesize < wanted) {
+        DEBUGF("CODEC_ERROR: could not buffer CAS file\n");
+        return CODEC_ERROR;
+    }
+
+    if (filesize < CAS_DATA_OFFSET) {
+        DEBUGF("CODEC_ERROR: CAS file too short: %u\n", (unsigned int)filesize);
         return CODEC_ERROR;
     }
 
@@ -321,6 +331,13 @@ enum codec_status codec_run(void)
 
     /* program length from the non-buffered file header */
     program_length = (casfile[0x83] << 8) + casfile[0x82];
+
+    /* the tape header repeats this length, so it can't be shortened */
+    if (program_length > filesize - CAS_DATA_OFFSET) {
+        DEBUGF("CODEC_ERROR: CAS program size %u exceeds file\n",
+               (unsigned int)program_length);
+        return CODEC_ERROR;
+    }
 
     DEBUGF("CAS type %u, program size %u, autorun %u, version %u\n",
            casfile[0x81], (unsigned int)program_length,
