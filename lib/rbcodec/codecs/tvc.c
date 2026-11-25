@@ -63,8 +63,8 @@ static const int16_t sync_samples[32] ICONST_ATTR = {
 #define DIM(array) (sizeof(array) / sizeof(array[0]))
 
 static int16_t samples[CHUNK_SIZE] IBSS_ATTR;
-static unsigned int samples_written = 0;
-static uint16_t current_crc = 0;
+static unsigned int samples_written;
+static uint16_t current_crc;
 
 static uint16_t crc(unsigned char bit, uint16_t crc)
 {
@@ -299,6 +299,10 @@ enum codec_status codec_run(void)
     unsigned char *casfile = NULL;
     intptr_t param;
     size_t program_length;
+
+    /* the codec stays loaded across tracks of the same type */
+    samples_written = 0;
+    current_crc = 0;
 
     if (codec_init()) {
         return CODEC_ERROR;
